@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 import Employee from '../models/employee.model.js';
 import bcrypt from 'bcrypt';
 
+
+import express from 'express';
+import mongoose from 'mongoose';
+import Employee from '../models/employee.model.js';
+import bcrypt from 'bcrypt';
+
 const router = express.Router();
 
 // Signup route
@@ -17,7 +23,8 @@ router.post('/signup', async (req, res) => {
             name,
             email,
             password,
-            department
+            department,
+            role: 'employee' // default role for new signups
         });
         await employee.save();
         res.status(201).json({ message: 'Employee created successfully' });
@@ -37,12 +44,12 @@ router.post('/login', async (req, res) => {
         if (!employee) {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
-        // Use bcrypt to compare hashed password
+
         const isMatch = await bcrypt.compare(password, employee.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
-        res.status(200).json({ message: 'Login successful', employeeId: employee.employeeId, name: employee.name, department: employee.department });
+        res.status(200).json({ message: 'Login successful', employeeId: employee.employeeId, name: employee.name, role: employee.role });
     } catch (err) {
         res.status(500).json({ error: 'Server error.' });
     }
