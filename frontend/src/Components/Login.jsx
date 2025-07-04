@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useAuthUser from "../context/AuthUser";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -8,34 +9,27 @@ const Login = () => {
     const [errors, setErrors] = useState("");
 
     const navigate = useNavigate();
+    const { loginUser, authUser } = useAuthUser();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         let newErrors = {};
-        if (!employeeId) newErrors.employeeId = "Employee ID is required";
-        if (!email) newErrors.email = "Email is required";
+        if (!employeeId && !email) newErrors.employeeId = "Either Employee ID or Email is required";
         if (!password) newErrors.password = "Password is required";
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
 
-        try {
-            const response = await fetch("http://localhost:5002/api/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ employeeId, email, password }),
-            });
-            const data = await response.json();
-            if (response.ok) {
-                alert("Login successful!");
-                navigate("/employee-dashboard");
-            } else {
-                alert("Login failed: " + data.error);
-            }
-        } catch (err) {
-            alert("Login failed: " + err.message);
+        const credentials = { employeeId, email, password };
+        const result = await loginUser(credentials);
+
+        if (result.success) {
+            alert("Login successful!");
+            // Navigation will be handled by App.jsx based on authUser state
+        } else {
+            alert("Login failed: " + result.error);
         }
     };
 
@@ -54,7 +48,7 @@ const Login = () => {
                             placeholder="Enter your Employee ID"
                         />
                     </div>
-                    {errors.name && (
+                    {errors.employeeId && (
                         <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>
                     )}
                     <div className="flex items-center justify-center ">
@@ -70,7 +64,7 @@ const Login = () => {
                             placeholder="Enter your email"
                         />
                     </div>
-                    {errors.name && (
+                    {errors.email && (
                         <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                     )}
                 </div>
@@ -84,7 +78,7 @@ const Login = () => {
                         placeholder="Enter your password"
                     />
                 </div>
-                {errors.name && (
+                {errors.password && (
                     <p className="text-red-500 text-sm mt-1">{errors.password}</p>
                 )}
                 <button

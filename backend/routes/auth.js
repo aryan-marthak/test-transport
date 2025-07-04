@@ -3,12 +3,6 @@ import mongoose from 'mongoose';
 import Employee from '../models/employee.model.js';
 import bcrypt from 'bcrypt';
 
-
-import express from 'express';
-import mongoose from 'mongoose';
-import Employee from '../models/employee.model.js';
-import bcrypt from 'bcrypt';
-
 const router = express.Router();
 
 // Signup route

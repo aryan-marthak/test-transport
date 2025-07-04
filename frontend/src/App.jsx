@@ -4,9 +4,25 @@ import Signup from './Components/Signup'
 import EmployeeDashboard from './Components/EmployeeDashboard'
 import AdminDashboard from './Components/AdminDashboard'
 import { Route, Routes, Navigate } from 'react-router-dom'
-import authUser from './context/AuthUser.js'
+import useAuthUser from './context/AuthUser.jsx'
+import { useState, useEffect } from 'react'
 
 function App() {
+  const { authUser } = useAuthUser();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Wait for authUser to be loaded from localStorage
+    if (authUser !== undefined) {
+      setLoading(false);
+    }
+  }, [authUser]);
+
+  if (loading) {
+    // You can render a loading spinner or null while authUser is loading
+    return <div>Loading...</div>;
+  }
+
   return (
     <Routes>
       <Route
