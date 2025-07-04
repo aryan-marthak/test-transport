@@ -149,7 +149,7 @@ const Signup = () => {
                 </button>
                 <p className="text-center text-gray-500 mt-4">
                     Already have an account?
-                    <span className="text-blue-500 cursor-pointer"> Login</span>
+                    <span className="text-blue-500 cursor-pointer" onClick={() => navigate('/login')}> Login</span>
                 </p>
             </form>
         </div>
