@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuthUser from '../context/AuthUser.jsx';
 import {
   Users,
   Car,
@@ -16,6 +18,8 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { logoutUser } = useAuthUser();
   const [activeTab, setActiveTab] = useState('active-requests');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddDriver, setShowAddDriver] = useState(false);
@@ -255,9 +259,15 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if there's an error, redirect to login
+      navigate('/login');
+    }
   };
 
   // Fetch drivers and vehicles from server
