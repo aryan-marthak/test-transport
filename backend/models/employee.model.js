@@ -33,7 +33,7 @@ const employeeSchema = new mongoose.Schema({
     role: {
         type: String,
         default: 'employee'
-    }
+    },
 }, {
     timestamps: true
 });
