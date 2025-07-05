@@ -147,7 +147,7 @@ const AdminDashboard = () => {
   };
 
   const handleAddVehicle = async () => {
-    if (vehicleForm.vehicleNo && vehicleForm.vehicleName && vehicleForm.capacity) {
+    if (vehicleForm.vehicleNo && vehicleForm.vehicleName && vehicleForm.capacity && vehicleForm.vehicleClass && vehicleForm.vehicleColor) {
       try {
         const response = await fetch('http://localhost:5002/api/vehicles', {
           method: 'POST',
