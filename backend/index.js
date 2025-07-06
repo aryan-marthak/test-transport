@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
 import driverRoutes from "./routes/driver.route.js";
 import vehicleRoutes from "./routes/vehicle.route.js";
+import tripRequestRoutes from "./routes/trip.request.js";
 
 const app = express();
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(cookieParser());
 app.use('/api', authRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/tripRequest', tripRequestRoutes);
 
 mongoose.connect(URI)
   .then(() => {

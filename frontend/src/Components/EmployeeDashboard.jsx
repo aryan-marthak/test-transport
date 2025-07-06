@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthUser from '../context/AuthUser.jsx';
 import { CarFront, LogOut, Plus, Eye, ArrowRight, Clock, CheckCircle, XCircle } from 'lucide-react';
@@ -23,102 +23,52 @@ const SimpleEmployeeDashboard = () => {
     remarks: ''
   });
 
-  const [requests, setRequests] = useState([
-    {
-      id: 1,
-      pickup: 'Office Building',
-      destination: 'Airport',
-      date: '2024-06-20',
-      startTime: '09:00',
-      endDate: '',
-      purpose: 'Official',
-      status: 'Pending',
-      vehicleClass: 'Sedan',
-      passengers: 2,
-      remarks: 'Flight departure at 12:00 PM'
-    },
-    {
-      id: 2,
-      pickup: 'Head Office',
-      destination: 'Client Office',
-      date: '2024-06-18',
-      startTime: '14:00',
-      endDate: '',
-      purpose: 'Meeting',
-      status: 'Approved',
-      vehicleClass: 'SUV',
-      passengers: 3,
-      remarks: 'Important client presentation',
-      vehicleDetails: {
-        driverName: 'Rajesh Kumar',
-        phoneNo: '+91 98765 43210',
-        vehicleNo: 'GJ-05-AB-1234',
-        vehicleName: 'Toyota Innova'
-      }
-    },
-    {
-      id: 3,
-      pickup: 'Office Building',
-      destination: 'Conference Center',
-      date: '2024-06-15',
-      startTime: '10:30',
-      endDate: '2024-06-15',
-      purpose: 'Official',
-      status: 'Completed',
-      vehicleClass: 'Sedan',
-      passengers: 1,
-      remarks: 'Annual conference attendance',
-      vehicleDetails: {
-        driverName: 'Amit Patel',
-        phoneNo: '+91 87654 32109',
-        vehicleNo: 'GJ-01-CD-5678',
-        vehicleName: 'Honda City'
-      }
-    },
-    {
-      id: 4,
-      pickup: 'Home',
-      destination: 'Hospital',
-      date: '2024-06-12',
-      startTime: '16:00',
-      endDate: '',
-      purpose: 'Emergency',
-      status: 'Rejected',
-      vehicleClass: 'Any',
-      passengers: 2,
-      remarks: 'Medical emergency - vehicle not available'
-    }
-  ]);
+  const [requests, setRequests] = useState([]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (formData.pickup && formData.destination && formData.date && formData.time) {
-      const newRequest = {
-        id: requests.length + 1,
-        pickup: formData.pickup,
-        destination: formData.destination,
-        date: formData.date,
-        startTime: formData.time,
-        endDate: formData.endDate,
-        purpose: formData.purpose,
-        vehicleClass: formData.vehicleClass,
-        passengers: parseInt(formData.passengers) || 1,
-        remarks: formData.remarks,
-        status: 'Pending'
-      };
-      setRequests([newRequest, ...requests]);
-      setFormData({ 
-        pickup: '', 
-        destination: '', 
-        date: '', 
-        time: '', 
-        endDate: '',
-        purpose: '',
-        designation: '',
-        vehicleClass: '',
-        passengers: '',
-        remarks: ''
-      });
-      setShowForm(false);
+      try {
+        const response = await fetch('http://localhost:5002/api/trip-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            pickupPoint: formData.pickup,
+            destination: formData.destination,
+            startDate: formData.date,
+            startTime: formData.time,
+            endDate: formData.endDate || formData.date, // Use start date if end date not provided
+            purpose: formData.purpose || 'Official',
+            designation: formData.designation || 'Staff',
+            vehicleClass: formData.vehicleClass || 'Economy',
+            numberOfPassengers: parseInt(formData.passengers) || 1,
+            remarks: formData.remarks || ''
+          }),
+        });
+
+        if (response.ok) {
+          const newRequest = await response.json();
+          const transformedRequest = {
+            id: newRequest._id,
+            pickup: newRequest.pickupPoint,
+            destination: newRequest.destination,
+            date: new Date(newRequest.startDate).toISOString().split('T')[0],
+            startTime: newRequest.startTime,
+            endDate: newRequest.endDate ? new Date(newRequest.endDate).toISOString().split('T')[0] : '',
+            purpose: newRequest.purpose,
+            designation: newRequest.designation,
+            vehicleClass: newRequest.vehicleClass,
+            passengers: newRequest.numberOfPassengers,
+            remarks: newRequest.remarks,
+            status: 'Pending'
+          };
+          
+        }
+      } catch (error) {
+        
+      }
     }
   };
 
