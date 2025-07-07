@@ -1,73 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthUser from '../context/AuthUser.jsx';
-import { CarFront, LogOut, Plus, Eye, ArrowRight, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { CarFront, LogOut, Plus, Eye, ArrowRight, Clock, CheckCircle, XCircle, SquareArrowOutDownRight } from 'lucide-react';
 
 const SimpleEmployeeDashboard = () => {
   const navigate = useNavigate();
-  const { logoutUser } = useAuthUser();
+  const { logoutUser, authUser } = useAuthUser();
   const [activeTab, setActiveTab] = useState('requests');
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [formData, setFormData] = useState({
-    pickup: '',
+    pickupPoint: '',
     destination: '',
-    date: '',
-    time: '',
+    startDate: '',
+    startTime: '',
     endDate: '',
     purpose: '',
     designation: '',
     vehicleClass: '',
-    passengers: '',
+    numberOfPassengers: '',
     remarks: ''
   });
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:5002/api/tripRequest', {
+          credentials: 'include'
+        });
+        if (response.ok){
+          const requestsData = await response.json();
+          setRequests(requestsData)
+        }
+      } catch (error) {
+        console.log('Error fetching request: ', error)
+      }
+    };
+
+    fetchRequests()
+  }, [])
+  
 
   const [requests, setRequests] = useState([]);
 
   const handleSubmit = async () => {
-    if (formData.pickup && formData.destination && formData.date && formData.time) {
+    if (formData.pickupPoint && formData.destination && formData.startDate && formData.startTime && formData.purpose && formData.designation && formData.vehicleClass && formData.numberOfPassengers) {
       try {
-        const response = await fetch('http://localhost:5002/api/trip-requests', {
+        const response = await fetch('http://localhost:5002/api/tripRequest', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
           body: JSON.stringify({
-            pickupPoint: formData.pickup,
-            destination: formData.destination,
-            startDate: formData.date,
-            startTime: formData.time,
-            endDate: formData.endDate || formData.date, // Use start date if end date not provided
-            purpose: formData.purpose || 'Official',
-            designation: formData.designation || 'Staff',
-            vehicleClass: formData.vehicleClass || 'Economy',
-            numberOfPassengers: parseInt(formData.passengers) || 1,
+            ...formData,
+            endDate: formData.endDate || formData.startDate, // Use start date if end date not provided
             remarks: formData.remarks || ''
           }),
         });
 
         if (response.ok) {
           const newRequest = await response.json();
-          const transformedRequest = {
-            id: newRequest._id,
-            pickup: newRequest.pickupPoint,
-            destination: newRequest.destination,
-            date: new Date(newRequest.startDate).toISOString().split('T')[0],
-            startTime: newRequest.startTime,
-            endDate: newRequest.endDate ? new Date(newRequest.endDate).toISOString().split('T')[0] : '',
-            purpose: newRequest.purpose,
-            designation: newRequest.designation,
-            vehicleClass: newRequest.vehicleClass,
-            passengers: newRequest.numberOfPassengers,
-            remarks: newRequest.remarks,
-            status: 'Pending'
-          };
-          
+          setRequests([newRequest, ...requests]);
+          setFormData({
+            pickupPoint: '',
+            destination: '',
+            startDate: '',
+            startTime: '',
+            endDate: '',
+            purpose: '',
+            designation: '',
+            vehicleClass: '',
+            numberOfPassengers: '',
+            remarks: '',
+          });
+          setShowForm(false);
+        } else {
+          console.log('Failed to create trip request')
         }
       } catch (error) {
-        
+        console.log('Error creating trip request', error)
       }
     }
   };
@@ -111,7 +124,6 @@ const SimpleEmployeeDashboard = () => {
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
-      // Even if there's an error, redirect to login
       navigate('/login');
     }
   };
@@ -131,7 +143,7 @@ const SimpleEmployeeDashboard = () => {
               <span className="text-xl font-bold text-gray-800">Transport Management</span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, Employee</span>
+              <span className="text-gray-700">Welcome, {authUser?.name}</span>
               <button 
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"
@@ -170,14 +182,14 @@ const SimpleEmployeeDashboard = () => {
               </div>
               
               {activeRequests.map((request) => (
-                <div key={request.id} className="bg-white rounded-lg shadow-md border-l-4 border-l-blue-500 p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <div key={request._id} className="bg-white rounded-lg shadow-md border-l-4 border-l-blue-500 p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                   <div className="flex items-start justify-between">
                     {/* Trip Route */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 text-lg font-medium text-gray-800">
                         <span className="flex items-center space-x-1">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>{request.pickup}</span>
+                          <span>{request.pickupPoint}</span>
                         </span>
                         <ArrowRight className="h-4 w-4 text-gray-400" />
                         <span className="flex items-center space-x-1">
@@ -187,7 +199,7 @@ const SimpleEmployeeDashboard = () => {
                         <span className="text-gray-500 text-sm">({request.purpose})</span>
                       </div>
                       <div className="text-sm text-gray-600 mt-1 flex items-center space-x-2">
-                        <span>{request.date}</span>
+                        <span>{new Date(request.startDate).toISOString().split('T')[0]}</span>
                         <span>•</span>
                         <span>{request.startTime}</span>
                       </div>
@@ -227,14 +239,14 @@ const SimpleEmployeeDashboard = () => {
               </div>
               
               {pastRequests.map((request) => (
-                <div key={request.id} className="bg-gray-50 rounded-lg shadow-sm border p-6 opacity-60 hover:opacity-80 transition-all duration-300">
+                <div key={request._id} className="bg-gray-50 rounded-lg shadow-sm border p-6 opacity-60 hover:opacity-80 transition-all duration-300">
                   <div className="flex items-start justify-between">
                     {/* Trip Route */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 text-lg font-medium text-gray-600">
                         <span className="flex items-center space-x-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <span>{request.pickup}</span>
+                          <span>{request.pickupPoint}</span>
                         </span>
                         <ArrowRight className="h-4 w-4 text-gray-400" />
                         <span className="flex items-center space-x-1">
@@ -244,13 +256,13 @@ const SimpleEmployeeDashboard = () => {
                         <span className="text-gray-500 text-sm">({request.purpose})</span>
                       </div>
                       <div className="text-sm text-gray-500 mt-1 flex items-center space-x-2">
-                        <span>{request.date}</span>
+                        <span>{new Date(request.startDate).toISOString().split('T')[0]}</span>
                         <span>•</span>
                         <span>{request.startTime}</span>
                         {request.endDate && (
                           <>
                             <span>•</span>
-                            <span>Ended: {request.endDate}</span>
+                            <span>Ended: {new Date(request.endDate).toISOString().split('T')[0]}</span>
                           </>
                         )}
                       </div>
@@ -308,8 +320,8 @@ const SimpleEmployeeDashboard = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.pickup}
-                  onChange={(e) => setFormData({...formData, pickup: e.target.value})}
+                  value={formData.pickupPoint}
+                  onChange={(e) => setFormData({...formData, pickupPoint: e.target.value})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="Where should we pick you up?"
                 />
@@ -335,8 +347,8 @@ const SimpleEmployeeDashboard = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -346,8 +358,8 @@ const SimpleEmployeeDashboard = () => {
                   </label>
                   <input
                     type="time"
-                    value={formData.time}
-                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -424,8 +436,8 @@ const SimpleEmployeeDashboard = () => {
                   type="number"
                   min="1"
                   max="20"
-                  value={formData.passengers}
-                  onChange={(e) => setFormData({...formData, passengers: e.target.value})}
+                  value={formData.numberOfPassengers}
+                  onChange={(e) => setFormData({...formData, numberOfPassengers: e.target.value})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="How many passengers?"
                 />
@@ -452,9 +464,9 @@ const SimpleEmployeeDashboard = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleSubmit}
-                  disabled={!formData.pickup || !formData.destination || !formData.date || !formData.time}
+                  disabled={!formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime || !formData.purpose || !formData.designation || !formData.vehicleClass || !formData.numberOfPassengers }
                   className={`flex-1 py-2 rounded-md font-medium transition-all ${
-                    !formData.pickup || !formData.destination || !formData.date || !formData.time
+                    !formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700 transform hover:scale-105'
                   }`}
@@ -482,7 +494,7 @@ const SimpleEmployeeDashboard = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-bold">Trip Details</h3>
-                  <p className={`${isRequestActive(selectedTrip.status) ? 'text-blue-100' : 'text-gray-100'} text-sm`}>Request ID: #{selectedTrip.id}</p>
+                  <p className={`${isRequestActive(selectedTrip.status) ? 'text-blue-100' : 'text-gray-100'} text-sm`}>Request ID: #{selectedTrip._id}</p>
                 </div>
                 <button
                   onClick={() => setShowDetails(false)}
@@ -502,7 +514,7 @@ const SimpleEmployeeDashboard = () => {
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium">{selectedTrip.pickup}</span>
+                    <span className="text-sm font-medium">{selectedTrip.pickupPoint}</span>
                   </div>
                   <ArrowRight className="h-4 w-4 text-gray-400" />
                   <div className="flex items-center space-x-2">
@@ -531,14 +543,14 @@ const SimpleEmployeeDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Number of Passengers</label>
-                    <p className="text-sm text-gray-900 font-medium">{selectedTrip.passengers}</p>
+                    <p className="text-sm text-gray-900 font-medium">{selectedTrip.numberOfPassengers}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-                    <p className="text-sm text-gray-900 font-medium">{selectedTrip.date}</p>
+                    <p className="text-sm text-gray-900 font-medium">{new Date(selectedTrip.startDate).toISOString().split('T')[0]}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Start Time</label>

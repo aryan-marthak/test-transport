@@ -1,16 +1,27 @@
 import express from "express";
 import tripRequest from "../models/trip.request.model.js"
+import secureRoute from "../middleware/secureRoute.js";
 
 const router = express.Router();
 
 // POST REQUEST FOR CREATING NEW TRIP
 
-router.post('/', async(req, res) => {
+router.post('/', secureRoute, async (req, res) => {
     try {
-        const { purpose, designation, vehicleClass, destination, pickupPoint, startDate, startTime, endDate, numberOfPassengers, remarks } = req.body
+        const { purpose, designation, vehicleClass, destination, pickupPoint, startDate, startTime, endDate, numberOfPassengers, remarks } = req.body;
 
         const newTripRequest = new tripRequest({
-            purpose, designation, vehicleClass, destination, pickupPoint, startDate: new Date(startDate), startTime, endDate: new Date(endDate), numberOfPassengers: parseInt(numberOfPassengers), remarks: remarks || ''
+            purpose,
+            designation,
+            vehicleClass,
+            destination,
+            pickupPoint,
+            startDate: new Date(startDate),
+            startTime,
+            endDate: new Date(endDate),
+            numberOfPassengers: parseInt(numberOfPassengers),
+            remarks: remarks || '',
+            createdBy: req.user._id
         });
 
         const savedTripRequest = await newTripRequest.save();
@@ -18,6 +29,18 @@ router.post('/', async(req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error creating trip request', error: error.message });
     }
-})
+});
+
+// GET REQUEST FOR GETTING ALL THE TRIPS
+
+router.get('/', secureRoute, async (req, res) => {
+    try {
+        const trips = await tripRequest.find({ createdBy: req.user._id }).populate('createdBy');
+        res.status(200).json(trips);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching trips', error: error.message });
+    }
+});
 
 export default router;
+

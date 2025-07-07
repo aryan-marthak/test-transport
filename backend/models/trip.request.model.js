@@ -52,6 +52,17 @@ const tripRequestSchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: ''
+    },
+    status: {
+        type: String,
+        enum: ['Pending', 'Approved', 'Rejected', 'Completed'],
+        default: 'Pending',
+        trim: true
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Employee",
+        required: true
     }
 }, {
     timestamps: true
