@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import useAuthUser from '../context/AuthUser.jsx';
 import { CarFront, LogOut, Plus, Eye, ArrowRight, Clock, CheckCircle, XCircle, SquareArrowOutDownRight } from 'lucide-react';
 
+// Helper function to format dates as '7 July 2025'
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
 const SimpleEmployeeDashboard = () => {
   const navigate = useNavigate();
   const { logoutUser, authUser } = useAuthUser();
@@ -29,17 +36,21 @@ const SimpleEmployeeDashboard = () => {
         const response = await fetch('http://localhost:5002/api/tripRequest', {
           credentials: 'include'
         });
-        if (response.ok){
+        if (response.ok) {
           const requestsData = await response.json();
-          setRequests(requestsData)
+          setRequests(requestsData);
         }
       } catch (error) {
-        console.log('Error fetching request: ', error)
+        console.log('Error fetching request: ', error);
       }
     };
 
-    fetchRequests()
-  }, [])
+    fetchRequests(); // Initial fetch
+
+    const interval = setInterval(fetchRequests, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []);
   
 
   const [requests, setRequests] = useState([]);
@@ -199,7 +210,7 @@ const SimpleEmployeeDashboard = () => {
                         <span className="text-gray-500 text-sm">({request.purpose})</span>
                       </div>
                       <div className="text-sm text-gray-600 mt-1 flex items-center space-x-2">
-                        <span>{new Date(request.startDate).toISOString().split('T')[0]}</span>
+                        <span>{formatDate(request.startDate)}</span>
                         <span>•</span>
                         <span>{request.startTime}</span>
                       </div>
@@ -256,13 +267,13 @@ const SimpleEmployeeDashboard = () => {
                         <span className="text-gray-500 text-sm">({request.purpose})</span>
                       </div>
                       <div className="text-sm text-gray-500 mt-1 flex items-center space-x-2">
-                        <span>{new Date(request.startDate).toISOString().split('T')[0]}</span>
+                        <span>{formatDate(request.startDate)}</span>
                         <span>•</span>
                         <span>{request.startTime}</span>
                         {request.endDate && (
                           <>
                             <span>•</span>
-                            <span>Ended: {new Date(request.endDate).toISOString().split('T')[0]}</span>
+                            <span>Ended: {formatDate(request.endDate)}</span>
                           </>
                         )}
                       </div>
@@ -466,7 +477,7 @@ const SimpleEmployeeDashboard = () => {
                   onClick={handleSubmit}
                   disabled={!formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime || !formData.purpose || !formData.designation || !formData.vehicleClass || !formData.numberOfPassengers }
                   className={`flex-1 py-2 rounded-md font-medium transition-all ${
-                    !formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime
+                    !formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime || !formData.purpose || !formData.designation || !formData.vehicleClass || !formData.numberOfPassengers  
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700 transform hover:scale-105'
                   }`}
@@ -550,7 +561,7 @@ const SimpleEmployeeDashboard = () => {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-                    <p className="text-sm text-gray-900 font-medium">{new Date(selectedTrip.startDate).toISOString().split('T')[0]}</p>
+                    <p className="text-sm text-gray-900 font-medium">{formatDate(selectedTrip.startDate)}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Start Time</label>
@@ -558,7 +569,7 @@ const SimpleEmployeeDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-                    <p className="text-sm text-gray-900 font-medium">{selectedTrip.endDate || 'Not specified'}</p>
+                    <p className="text-sm text-gray-900 font-medium">{formatDate(selectedTrip.endDate) || 'Not specified'}</p>
                   </div>
                 </div>
               </div>

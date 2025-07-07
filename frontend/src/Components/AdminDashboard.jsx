@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthUser from '../context/AuthUser.jsx';
 import {
   Users,
+  User,
   Car,
   FileText,
   History,
@@ -14,7 +15,9 @@ import {
   LogOut,
   UserPlus,
   CarFront,
-  Trash2
+  Trash2,
+  MapPin,
+  Calendar
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -25,55 +28,7 @@ const AdminDashboard = () => {
   const [showAddDriver, setShowAddDriver] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
 
-
-  const [activeRequests, setActiveRequests] = useState([
-    {
-      id: 'REQ001',
-      employee: 'John Doe',
-      companyId: 'EMP001',
-      purpose: 'Official',
-      destination: 'Client Meeting - Mumbai',
-      pickupPoint: 'Office Main Gate',
-      startDate: '2024-07-10',
-      startTime: '09:00',
-      endDate: '2024-07-10',
-      endTime: '18:00',
-      vehicleClass: 'Business',
-      passengers: 2,
-      status: 'Pending',
-      requestedAt: '2024-07-08 14:30'
-    },
-    {
-      id: 'REQ002',
-      employee: 'Jane Smith',
-      companyId: 'EMP005',
-      purpose: 'Personal',
-      destination: 'Airport',
-      pickupPoint: 'Residence',
-      startDate: '2024-07-11',
-      startTime: '06:00',
-      endDate: '2024-07-11',
-      endTime: '10:00',
-      vehicleClass: 'Economy',
-      passengers: 1,
-      status: 'Pending',
-      requestedAt: '2024-07-08 16:45'
-    }
-  ]);
-
-  const [pastRequests, setPastRequests] = useState([
-    {
-      id: 'REQ003',
-      employee: 'Mike Johnson',
-      companyId: 'EMP003',
-      purpose: 'Official',
-      destination: 'Conference - Delhi',
-      status: 'Completed',
-      handledAt: '2024-07-05',
-      assignedVehicle: 'MH-12-AB-1234',
-      assignedDriver: 'Rajesh Kumar'
-    }
-  ]);
+  const [requests, setRequests] = useState([]);
 
   const [vehicles, setVehicles] = useState([]);
 
@@ -101,8 +56,22 @@ const AdminDashboard = () => {
     remarks: ''
   });
 
+  // Utility for status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   const handleApprove = (requestId, vehicleId, driverId, remarks) => {
-    setActiveRequests(prev =>
+    setRequests(prev =>
       prev.map(req =>
         req.id === requestId ? {
           ...req,
@@ -133,7 +102,7 @@ const AdminDashboard = () => {
   };
 
   const handleReject = (requestId, reason) => {
-    setActiveRequests(prev =>
+    setRequests(prev =>
       prev.map(req =>
         req.id === requestId ? { ...req, status: 'Rejected', rejectionReason: reason } : req
       )
@@ -270,7 +239,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch drivers and vehicles from server
+  // Fetch drivers, vehicles and tripRequests from server
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
@@ -282,7 +251,7 @@ const AdminDashboard = () => {
           console.error('Failed to fetch drivers');
         }
       } catch (error) {
-        console.error('Error fetching drivers:', error);
+        console.error('Error fetching drivers: ', error);
       }
     };
 
@@ -296,13 +265,41 @@ const AdminDashboard = () => {
           console.error('Failed to fetch vehicles');
         }
       } catch (error) {
-        console.error('Error fetching vehicles:', error);
+        console.error('Error fetching vehicles: ', error);
       }
     };
 
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:5002/api/tripRequest', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const requestsData = await response.json();
+          setRequests(requestsData)
+        }
+      } catch (error) {
+        console.log('Error fetching request: ', error)
+      }
+    };
+
+    fetchRequests()
+    const interval = setInterval(fetchRequests, 5000);
     fetchDrivers();
     fetchVehicles();
+    return () => clearInterval(interval);
   }, []);
+
+  // Helper: split requests by status
+  const activeRequests = requests.filter(req => req.status === 'Pending');
+  const pastRequests = requests.filter(req => req.status !== 'Pending');
+
+  // Helper for date formatting
+  const formatDateLong = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
   const renderActiveRequests = () => (
     <div className="space-y-4">
@@ -313,135 +310,140 @@ const AdminDashboard = () => {
           <p className="text-gray-500">No active requests found</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {activeRequests.map(request => (
-            <div key={request.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{request.employee}</h3>
-                  <p className="text-sm text-gray-600">{request.companyId}</p>
+        activeRequests.map(request => (
+          <div key={request._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow h-fit">
+            {/* Card Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white p-3 rounded-full shadow-sm">
+                    <User className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold text-gray-900 truncate">
+                      {request.createdBy?.name || 'Employee'} <span className="text-gray-600 font-normal">({request.designation})</span>
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-xs font-bold text-gray-700">
+                        {request.createdBy.employeeId}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${request.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                      request.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                    }`}>
-                    {request.status}
-                  </span>
+                <span className={`inline-flex items-center px-5 py-3 rounded-full text-md font-semibold border border-gray-400 ${getStatusColor(request.status)}`}>
+                  {request.status}
+                </span>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6">
+              {/* Trip Details */}
+              <div className="space-y-4">
+                {/* Purpose */}
+                <div className="flex items-start space-x-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-500">Purpose</p>
+                    <p className="text-sm font-semibold text-gray-900">{request.purpose}</p>
+                  </div>
+                </div>
+
+                {/* Pickup and Destination */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <MapPin className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Pickup Point</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{request.pickupPoint}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <MapPin className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Destination</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{request.destination}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pickup Date & Time and End Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <Calendar className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Pickup Date & Time</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDateLong(request.startDate)} at {request.startTime}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-orange-100 p-2 rounded-lg">
+                      <Calendar className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">End Date</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDateLong(request.endDate)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Passengers and Vehicle */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-cyan-100 p-2 rounded-lg">
+                      <Users className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">No. of Passengers</p>
+                      <p className="text-sm font-semibold text-gray-900">{request.numberOfPassengers}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-teal-100 p-2 rounded-lg">
+                      <Car className="h-5 w-5 text-teal-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Requested Vehicle</p>
+                      <p className="text-sm font-semibold text-gray-900">{request.vehicleClass}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">Purpose</p>
-                  <p className="font-medium">{request.purpose}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Destination</p>
-                  <p className="font-medium">{request.destination}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Date & Time</p>
-                  <p className="font-medium">{request.startDate} at {request.startTime}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Vehicle Class</p>
-                  <p className="font-medium">{request.vehicleClass}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">Pickup Point</p>
-                  <p className="font-medium">{request.pickupPoint}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Passengers</p>
-                  <p className="font-medium">{request.passengers}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Requested At</p>
-                  <p className="font-medium">{request.requestedAt}</p>
-                </div>
-              </div>
-
+              {/* Action Buttons */}
               {request.status === 'Pending' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Available Vehicles */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2">Available {request.vehicleClass} Vehicles</h4>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {getAvailableVehicles(request.vehicleClass).length === 0 ? (
-                          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                            No {request.vehicleClass} vehicles available
-                          </div>
-                        ) : (
-                          getAvailableVehicles(request.vehicleClass).map(vehicle => (
-                            <div key={vehicle._id} className="flex items-center justify-between bg-green-50 p-3 rounded border">
-                              <div>
-                                <p className="font-medium text-sm">{vehicle.vehicleNo}</p>
-                                <p className="text-xs text-gray-600">{vehicle.vehicleName} • {vehicle.capacity} seats</p>
-                              </div>
-                              <div className="text-xs text-green-600 font-medium">Available</div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Available Drivers */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2">Available Drivers</h4>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {getAvailableDrivers().length === 0 ? (
-                          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                            No drivers available
-                          </div>
-                        ) : (
-                          getAvailableDrivers().map(driver => (
-                            <div key={driver._id} className="flex items-center justify-between bg-blue-50 p-3 rounded border">
-                              <div>
-                                <p className="font-medium text-sm">{driver.driverName}</p>
-                                <p className="text-xs text-gray-600">{driver.phoneNo}</p>
-                              </div>
-                              <div className="text-xs text-blue-600 font-medium">Available</div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => setSelectedRequest(request)}
-                      disabled={getAvailableVehicles(request.vehicleClass).length === 0 || getAvailableDrivers().length === 0}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${getAvailableVehicles(request.vehicleClass).length === 0 || getAvailableDrivers().length === 0
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
-                    >
-                      <Check className="h-4 w-4" />
-                      <span>Approve & Assign</span>
-                    </button>
-                    <button
-                      onClick={() => handleReject(request.id, 'Rejected by admin')}
-                      className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                      <span>Reject</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                      <Eye className="h-4 w-4" />
-                      <span>View Details</span>
-                    </button>
-                  </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setSelectedRequest(request)}
+                    className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm text-sm flex-1"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span>Approve & Assign</span>
+                  </button>
+                  <button
+                    onClick={() => handleReject(request._id, 'Rejected by admin')}
+                    className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm text-sm flex-1"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Reject</span>
+                  </button>
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))
       )}
     </div>
   );
@@ -566,13 +568,13 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid gap-4">
-                                {drivers.map(driver => (
-                          <div key={driver._id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        {drivers.map(driver => (
+          <div key={driver._id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">{driver.driverName}</h3>
               </div>
-                            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${driver.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
                   {driver.status === 'available' ? 'Available' : 'Assigned'}
@@ -643,8 +645,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('active-requests')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'active-requests'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <FileText className="h-4 w-4" />
@@ -653,8 +655,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('past-requests')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'past-requests'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <History className="h-4 w-4" />
@@ -663,8 +665,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('vehicles')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'vehicles'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <Car className="h-4 w-4" />
@@ -673,8 +675,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('drivers')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'drivers'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <Users className="h-4 w-4" />
@@ -700,21 +702,49 @@ const AdminDashboard = () => {
 
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium mb-2">Request Details</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Employee:</span>
-                  <span className="ml-2 font-medium">{selectedRequest.employee}</span>
+                  <span className="ml-2 font-medium">{selectedRequest.createdBy?.name || 'Employee'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Employee ID:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.createdBy?.employeeId}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Designation:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.designation}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Purpose:</span>
                   <span className="ml-2 font-medium">{selectedRequest.purpose}</span>
                 </div>
                 <div>
+                  <span className="text-gray-600">Pickup Point:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.pickupPoint}</span>
+                </div>
+                <div>
                   <span className="text-gray-600">Destination:</span>
                   <span className="ml-2 font-medium">{selectedRequest.destination}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Requested Class:</span>
+                  <span className="text-gray-600">Start Date:</span>
+                  <span className="ml-2 font-medium">{formatDateLong(selectedRequest.startDate)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Start Time:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.startTime}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">End Date:</span>
+                  <span className="ml-2 font-medium">{formatDateLong(selectedRequest.endDate)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">No. of Passengers:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.numberOfPassengers}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Required Vehicle Class:</span>
                   <span className="ml-2 font-medium">{selectedRequest.vehicleClass}</span>
                 </div>
               </div>
@@ -767,7 +797,7 @@ const AdminDashboard = () => {
                 <textarea
                   value={assignmentData.remarks}
                   onChange={(e) => setAssignmentData({ ...assignmentData, remarks: e.target.value })}
-                  rows={3}
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Any additional notes or instructions..."
                 />
@@ -777,15 +807,15 @@ const AdminDashboard = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => handleApprove(
-                  selectedRequest.id,
+                  selectedRequest._id,
                   assignmentData.vehicleId,
                   assignmentData.driverId,
                   assignmentData.remarks
                 )}
                 disabled={!assignmentData.vehicleId || !assignmentData.driverId}
                 className={`flex-1 py-2 rounded-md transition-colors ${!assignmentData.vehicleId || !assignmentData.driverId
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
               >
                 Approve & Assign
@@ -815,13 +845,13 @@ const AdminDashboard = () => {
                 onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleNo: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-                              <input
-                  type="text"
-                  placeholder="Vehicle Name"
-                  value={vehicleForm.vehicleName}
-                  onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <input
+                type="text"
+                placeholder="Vehicle Name"
+                value={vehicleForm.vehicleName}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <select
                 value={vehicleForm.vehicleClass}
                 onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleClass: e.target.value })}

@@ -1,6 +1,8 @@
 import express from "express";
 import tripRequest from "../models/trip.request.model.js"
 import secureRoute from "../middleware/secureRoute.js";
+import driverModel from "../models/driver.model.js";
+import vehicleModel from "../models/vehicle.model.js";
 
 const router = express.Router();
 
@@ -35,11 +37,75 @@ router.post('/', secureRoute, async (req, res) => {
 
 router.get('/', secureRoute, async (req, res) => {
     try {
-        const trips = await tripRequest.find({ createdBy: req.user._id }).populate('createdBy');
+        let trips;
+        if (req.user.role === 'admin') {
+            trips = await tripRequest.find({}).populate('createdBy');
+        } else {
+            trips = await tripRequest.find({ createdBy: req.user._id }).populate('createdBy');
+        }
         res.status(200).json(trips);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching trips', error: error.message });
     }
+});
+
+// APPROVE AND ASSIGN VEHICLE/DRIVER TO TRIP REQUEST
+router.post('/:id/approve', secureRoute, async (req, res) => {
+  try {
+    const { vehicleId, driverId, remarks } = req.body;
+    const tripRequestId = req.params.id;
+
+    // Find driver and vehicle
+    const driver = await driverModel.findById(driverId);
+    const vehicle = await vehicleModel.findById(vehicleId);
+
+    if (!driver || !vehicle) {
+      return res.status(404).json({ message: 'Driver or Vehicle not found' });
+    }
+
+    // Update trip request
+    const updatedTrip = await tripRequest.findByIdAndUpdate(
+      tripRequestId,
+      {
+        status: 'Approved',
+        remarks: remarks || '',
+        vehicleDetails: {
+          driverName: driver.driverName,
+          phoneNo: driver.phoneNo,
+          vehicleNo: vehicle.vehicleNo,
+          vehicleName: vehicle.vehicleName,
+          vehicleColor: vehicle.vehicleColor
+        }
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedTrip);
+  } catch (error) {
+    res.status(500).json({ message: 'Error approving trip request', error: error.message });
+  }
+});
+
+// REJECT TRIP REQUEST
+router.post('/:id/reject', secureRoute, async (req, res) => {
+  try {
+    const { remarks } = req.body;
+    const tripRequestId = req.params.id;
+
+    // Update trip request status to Rejected and save remarks
+    const updatedTrip = await tripRequest.findByIdAndUpdate(
+      tripRequestId,
+      {
+        status: 'Rejected',
+        remarks: remarks || ''
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedTrip);
+  } catch (error) {
+    res.status(500).json({ message: 'Error rejecting trip request', error: error.message });
+  }
 });
 
 export default router;
