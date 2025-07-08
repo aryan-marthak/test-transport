@@ -56,6 +56,10 @@ const AdminDashboard = () => {
     remarks: ''
   });
 
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectRemark, setRejectRemark] = useState('');
+  const [rejectingRequestId, setRejectingRequestId] = useState(null);
+
   // Utility for status color
   const getStatusColor = (status) => {
     switch (status) {
@@ -101,12 +105,39 @@ const AdminDashboard = () => {
     setAssignmentData({ vehicleId: '', driverId: '', remarks: '' });
   };
 
-  const handleReject = (requestId, reason) => {
-    setRequests(prev =>
-      prev.map(req =>
-        req.id === requestId ? { ...req, status: 'Rejected', rejectionReason: reason } : req
-      )
-    );
+  const handleReject = async (requestId, reason) => {
+    setRejectingRequestId(requestId);
+    setRejectRemark('');
+    setShowRejectModal(true);
+  };
+
+  const submitReject = async () => {
+    if (!rejectingRequestId) return;
+    try {
+      const response = await fetch(`http://localhost:5002/api/tripRequest/${rejectingRequestId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ remarks: rejectRemark })
+      });
+      if (response.ok) {
+        // Optionally, you can refetch requests here or rely on polling
+        setShowRejectModal(false);
+        setRejectRemark('');
+        setRejectingRequestId(null);
+        // Optionally, update requests state immediately for snappier UI
+        setRequests(prev => prev.map(req => req._id === rejectingRequestId ? { ...req, status: 'Rejected', remarks: rejectRemark } : req));
+      } else {
+        // handle error
+        setShowRejectModal(false);
+        setRejectRemark('');
+        setRejectingRequestId(null);
+      }
+    } catch (error) {
+      setShowRejectModal(false);
+      setRejectRemark('');
+      setRejectingRequestId(null);
+    }
   };
 
   const getAvailableVehicles = (requestedClass) => {
@@ -433,7 +464,7 @@ const AdminDashboard = () => {
                     <span>Approve & Assign</span>
                   </button>
                   <button
-                    onClick={() => handleReject(request._id, 'Rejected by admin')}
+                    onClick={() => handleReject(request._id, '')}
                     className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm text-sm flex-1"
                   >
                     <X className="h-4 w-4" />
@@ -940,6 +971,37 @@ const AdminDashboard = () => {
               </button>
               <button
                 onClick={() => setShowAddDriver(false)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Reject Request</h3>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Reason for Rejection</label>
+            <textarea
+              value={rejectRemark}
+              onChange={e => setRejectRemark(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Please provide a reason for rejection..."
+            />
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={submitReject}
+                disabled={!rejectRemark.trim()}
+                className={`flex-1 py-2 rounded-md transition-colors ${!rejectRemark.trim() ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => { setShowRejectModal(false); setRejectRemark(''); setRejectingRequestId(null); }}
                 className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 transition-colors"
               >
                 Cancel
