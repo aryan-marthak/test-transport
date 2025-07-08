@@ -63,6 +63,10 @@ router.post('/:id/approve', secureRoute, async (req, res) => {
       return res.status(404).json({ message: 'Driver or Vehicle not found' });
     }
 
+    // Correctly update vehicle and driver status
+    await vehicleModel.findByIdAndUpdate(vehicleId, { status: 'assigned' });
+    await driverModel.findByIdAndUpdate(driverId, { status: 'assigned' });
+
     // Update trip request
     const updatedTrip = await tripRequest.findByIdAndUpdate(
       tripRequestId,

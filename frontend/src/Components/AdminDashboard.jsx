@@ -26,7 +26,6 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('active-requests');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddDriver, setShowAddDriver] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null);
 
   const [requests, setRequests] = useState([]);
 
@@ -74,32 +73,27 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApprove = (requestId, vehicleId, driverId, remarks) => {
-    setRequests(prev =>
-      prev.map(req =>
-        req.id === requestId ? {
-          ...req,
-          status: 'Approved',
-          assignedVehicle: vehicles.find(v => v._id === vehicleId)?.vehicleNo,
-          assignedDriver: drivers.find(d => d._id === driverId)?.driverName,
-          remarks: remarks
-        } : req
-      )
-    );
+  const handleApprove = async (requestId, vehicleId, driverId, remarks) => {
+    try {
+      const response = await fetch(`http://localhost:5002/api/tripRequest/${requestId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ vehicleId, driverId, remarks })
+      });
+      if (response.ok) {
+        setSelectedRequest(null);
+        setAssignmentData({ vehicleId: '', driverId:'', remarks: '' } );
+      } else {
+        alert('Failed to approve and assign. Please try again.')
+      }
+    } catch (error) {
+      alert('Error approving and assigning request.')
+    }
 
-    // Update vehicle availability
-    setVehicles(prev =>
-      prev.map(vehicle =>
-        vehicle._id === vehicleId ? { ...vehicle, isAvailable: false } : vehicle
-      )
-    );
+    await fetchDrivers();
+    await fetchVehicles();
 
-    // Update driver availability
-    setDrivers(prev =>
-      prev.map(driver =>
-        driver._id === driverId ? { ...driver, status: 'assigned' } : driver
-      )
-    );
 
     setSelectedRequest(null);
     setAssignmentData({ vehicleId: '', driverId: '', remarks: '' });
@@ -314,10 +308,11 @@ const AdminDashboard = () => {
       }
     };
 
-    fetchRequests()
-    const interval = setInterval(fetchRequests, 5000);
-    fetchDrivers();
-    fetchVehicles();
+    const interval = setInterval(() => {
+      fetchDrivers();
+      fetchVehicles();
+      fetchRequests()
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -488,40 +483,144 @@ const AdminDashboard = () => {
           <p className="text-gray-500">No past requests found</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {pastRequests.map(request => (
-            <div key={request.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{request.employee}</h3>
-                  <p className="text-sm text-gray-600">{request.companyId}</p>
+        pastRequests.map(request => (
+          <div key={request._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow h-fit">
+            {/* Card Header */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white p-3 rounded-full shadow-sm">
+                    <User className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold text-gray-900 truncate">
+                      {request.createdBy?.name || 'Employee'} <span className="text-gray-600 font-normal">({request.designation})</span>
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-xs font-bold text-gray-700">
+                        {request.createdBy?.employeeId}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                <span className={`inline-flex items-center px-5 py-3 rounded-full text-md font-semibold border border-gray-400 ${getStatusColor(request.status)}`}>
                   {request.status}
                 </span>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Purpose</p>
-                  <p className="font-medium">{request.purpose}</p>
+            {/* Card Content */}
+            <div className="p-6">
+              {/* Trip Details */}
+              <div className="space-y-4">
+                {/* Purpose */}
+                <div className="flex items-start space-x-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-500">Purpose</p>
+                    <p className="text-sm font-semibold text-gray-900">{request.purpose}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Destination</p>
-                  <p className="font-medium">{request.destination}</p>
+
+                {/* Pickup and Destination */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <MapPin className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Pickup Point</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{request.pickupPoint}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <MapPin className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Destination</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{request.destination}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Assigned Vehicle</p>
-                  <p className="font-medium">{request.assignedVehicle}</p>
+
+                {/* Pickup Date & Time and End Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <Calendar className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Pickup Date & Time</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDateLong(request.startDate)} at {request.startTime}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-orange-100 p-2 rounded-lg">
+                      <Calendar className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">End Date</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDateLong(request.endDate)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Assigned Driver</p>
-                  <p className="font-medium">{request.assignedDriver}</p>
+
+                {/* Passengers and Vehicle */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-cyan-100 p-2 rounded-lg">
+                      <Users className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">No. of Passengers</p>
+                      <p className="text-sm font-semibold text-gray-900">{request.numberOfPassengers}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-teal-100 p-2 rounded-lg">
+                      <Car className="h-5 w-5 text-teal-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-500">Requested Vehicle</p>
+                      <p className="text-sm font-semibold text-gray-900">{request.vehicleClass}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assigned Vehicle/Driver */}
+                {request.vehicleDetails && (
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Assigned Vehicle</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {request.vehicleDetails.vehicleNo} - {request.vehicleDetails.vehicleName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Assigned Driver</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {request.vehicleDetails.driverName} ({request.vehicleDetails.phoneNo})
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Remarks */}
+                <div className="mt-4">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{request.remarks || 'No remarks provided'}</p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))
       )}
     </div>
   );
@@ -548,8 +647,9 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-600">{vehicle.vehicleName}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Available
+                <span className={`px-5 py-2 rounded-full text-sm font-semibold ${vehicle.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                  {vehicle.status === 'assigned' ? 'Assigned' : "Available"}
                 </span>
                 <button
                   onClick={() => handleDeleteVehicle(vehicle._id)}
@@ -561,7 +661,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-gray-500">Class</p>
                 <p className="font-medium">{vehicle.vehicleClass}</p>
@@ -573,10 +673,6 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-gray-500">Color</p>
                 <p className="font-medium">{vehicle.vehicleColor}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
-                <p className="font-medium">Available</p>
               </div>
             </div>
           </div>
@@ -606,7 +702,7 @@ const AdminDashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-800">{driver.driverName}</h3>
               </div>
               <div className="flex items-center space-x-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${driver.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                <span className={`px-5 py-2 rounded-full text-sm font-semibold ${driver.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
                   {driver.status === 'available' ? 'Available' : 'Assigned'}
                 </span>
@@ -620,7 +716,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-gray-500">License Number</p>
                 <p className="font-medium">{driver.licenseNo}</p>
@@ -633,10 +729,10 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-500">Phone</p>
                 <p className="font-medium">{driver.phoneNo}</p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-sm text-gray-500">Status</p>
                 <p className="font-medium">{driver.status === 'available' ? 'Available' : 'Assigned'}</p>
-              </div>
+              </div> */}
             </div>
           </div>
         ))}

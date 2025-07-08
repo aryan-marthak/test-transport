@@ -65,6 +65,8 @@ const tripRequestSchema = new mongoose.Schema({
         required: true
     },
     vehicleDetails: {
+        driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+        vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
         driverName: { type: String },
         phoneNo: { type: String },
         vehicleNo: { type: String },

@@ -26,6 +26,12 @@ const vehicleSchema = new mongoose.Schema({
         required: true,
         enum: ['Economy', 'Business', 'Executive', 'Luxury'],
         trim: true
+    },
+    status: {
+        type: String,
+        required: true,
+        enum: ['assigned', 'available'],
+        default: 'available'
     }
 }, {
     timestamps: true
