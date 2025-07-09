@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthUser from '../context/AuthUser.jsx';
-import { CarFront, LogOut, Plus, Eye, ArrowRight, Clock, CheckCircle, XCircle, SquareArrowOutDownRight } from 'lucide-react';
+import Header from './AdminComponents/Header.jsx';
+import ActiveRequest from './EmployeeComponents/ActiveRequest.jsx';
+import PastRequest from './EmployeeComponents/PastRequest.jsx';
+import NewRequest from './EmployeeComponents/NewRequest.jsx';
+import { CarFront, ArrowRight, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 // Helper function to format dates as '7 July 2025'
 const formatDate = (dateString) => {
@@ -10,10 +14,9 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-const SimpleEmployeeDashboard = () => {
+const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const { logoutUser, authUser } = useAuthUser();
-  const [activeTab, setActiveTab] = useState('requests');
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -29,6 +32,7 @@ const SimpleEmployeeDashboard = () => {
     numberOfPassengers: '',
     remarks: ''
   });
+  const [requests, setRequests] = useState([]);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -44,16 +48,10 @@ const SimpleEmployeeDashboard = () => {
         console.log('Error fetching request: ', error);
       }
     };
-
-    fetchRequests(); // Initial fetch
-
-    const interval = setInterval(fetchRequests, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
+    fetchRequests();
+    const interval = setInterval(fetchRequests, 5000);
+    return () => clearInterval(interval);
   }, []);
-  
-
-  const [requests, setRequests] = useState([]);
 
   const handleSubmit = async () => {
     if (formData.pickupPoint && formData.destination && formData.startDate && formData.startTime && formData.purpose && formData.designation && formData.vehicleClass && formData.numberOfPassengers) {
@@ -66,11 +64,10 @@ const SimpleEmployeeDashboard = () => {
           credentials: 'include',
           body: JSON.stringify({
             ...formData,
-            endDate: formData.endDate || formData.startDate, // Use start date if end date not provided
+            endDate: formData.endDate || formData.startDate,
             remarks: formData.remarks || ''
           }),
         });
-
         if (response.ok) {
           const newRequest = await response.json();
           setRequests([newRequest, ...requests]);
@@ -87,8 +84,6 @@ const SimpleEmployeeDashboard = () => {
             remarks: '',
           });
           setShowForm(false);
-        } else {
-          console.log('Failed to create trip request')
         }
       } catch (error) {
         console.log('Error creating trip request', error)
@@ -121,54 +116,26 @@ const SimpleEmployeeDashboard = () => {
     }
   };
 
-  const isRequestActive = (status) => {
-    return status === 'Pending' || status === 'Approved';
-  };
-
-  const isRequestPast = (status) => {
-    return status === 'Completed' || status === 'Rejected';
-  };
+  const isRequestActive = (status) => status === 'Pending' || status === 'Approved';
+  const isRequestPast = (status) => status === 'Completed' || status === 'Rejected';
 
   const handleLogout = async () => {
     try {
       await logoutUser();
       navigate('/login');
     } catch (error) {
-      console.error('Error during logout:', error);
       navigate('/login');
     }
   };
 
-  // Separate active and past requests
+  // Split requests
   const activeRequests = requests.filter(request => isRequestActive(request.status));
   const pastRequests = requests.filter(request => isRequestPast(request.status));
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <CarFront className="h-8 w-8 text-blue-600 mr-3" />
-              <span className="text-xl font-bold text-gray-800">Transport Management</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {authUser?.name}</span>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <Header authUser={authUser} handleLogout={handleLogout} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Content */}
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">My Requests</h2>
@@ -176,133 +143,38 @@ const SimpleEmployeeDashboard = () => {
               onClick={() => setShowForm(true)}
               className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all transform hover:scale-105"
             >
-              <Plus className="h-4 w-4" />
+              {/* Plus icon can be added here if desired */}
               <span>New Request</span>
             </button>
           </div>
-          
+          {/* New Request Modal */}
+          <NewRequest
+            showForm={showForm}
+            setShowForm={setShowForm}
+            formData={formData}
+            setFormData={setFormData}
+            handleSubmit={handleSubmit}
+          />
           {/* Active Requests Section */}
           {activeRequests.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-lg font-semibold text-gray-800">Active Requests</h3>
-                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                  {activeRequests.length}
-                </span>
-              </div>
-              
-              {activeRequests.map((request) => (
-                <div key={request._id} className="bg-white rounded-lg shadow-md border-l-4 border-l-blue-500 p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="flex items-start justify-between">
-                    {/* Trip Route */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 text-lg font-medium text-gray-800">
-                        <span className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>{request.pickupPoint}</span>
-                        </span>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
-                        <span className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span>{request.destination}</span>
-                        </span>
-                        <span className="text-gray-500 text-sm">({request.purpose})</span>
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1 flex items-center space-x-2">
-                        <span>{formatDate(request.startDate)}</span>
-                        <span>•</span>
-                        <span>{request.startTime}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Status and Actions */}
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(request.status)}
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                          {request.status}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleViewDetails(request)}
-                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>View Details</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ActiveRequest
+              activeRequests={activeRequests}
+              onViewDetails={handleViewDetails}
+              getStatusColor={getStatusColor}
+              getStatusIcon={getStatusIcon}
+              formatDate={formatDate}
+            />
           )}
-
           {/* Past Requests Section */}
           {pastRequests.length > 0 && (
-            <div className="space-y-4 mt-8">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-gray-600">Past Requests</h3>
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
-                  {pastRequests.length}
-                </span>
-              </div>
-              
-              {[...pastRequests]
-                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-                .map((request) => (
-                  <div key={request._id} className="bg-gray-50 rounded-lg shadow-sm border p-6 opacity-60 hover:opacity-80 transition-all duration-300">
-                    <div className="flex items-start justify-between">
-                      {/* Trip Route */}
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 text-lg font-medium text-gray-600">
-                          <span className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                            <span>{request.pickupPoint}</span>
-                          </span>
-                          <ArrowRight className="h-4 w-4 text-gray-400" />
-                          <span className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                            <span>{request.destination}</span>
-                          </span>
-                          <span className="text-gray-500 text-sm">({request.purpose})</span>
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1 flex items-center space-x-2">
-                          <span>{formatDate(request.startDate)}</span>
-                          <span>•</span>
-                          <span>{request.startTime}</span>
-                          {request.endDate && (
-                            <>
-                              <span>•</span>
-                              <span>Ended: {formatDate(request.endDate)}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Status and Actions */}
-                      <div className="flex flex-col items-end space-y-2">
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(request.status)}
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)} opacity-80`}>
-                            {request.status}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleViewDetails(request)}
-                          className="flex items-center space-x-1 text-gray-500 hover:text-gray-700 text-sm font-medium hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span>View Details</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
+            <PastRequest
+              pastRequests={pastRequests}
+              onViewDetails={handleViewDetails}
+              getStatusColor={getStatusColor}
+              getStatusIcon={getStatusIcon}
+              formatDate={formatDate}
+            />
           )}
-
           {/* Empty State */}
           {requests.length === 0 && (
             <div className="text-center py-12">
@@ -313,191 +185,6 @@ const SimpleEmployeeDashboard = () => {
           )}
         </div>
       </div>
-
-      {/* New Request Modal - Improved Design */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
-            {/* Header - Fixed */}
-            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
-              <h3 className="text-xl font-bold text-gray-800">New Vehicle Request</h3>
-              <p className="text-sm text-gray-600 mt-1">Fill in the details below to request a vehicle</p>
-            </div>
-            
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pickup Location 
-                </label>
-                <input
-                  type="text"
-                  value={formData.pickupPoint}
-                  onChange={(e) => setFormData({...formData, pickupPoint: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Where should we pick you up?"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Destination 
-                </label>
-                <input
-                  type="text"
-                  value={formData.destination}
-                  onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Where do you need to go?"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date 
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Time 
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date 
-                </label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Purpose 
-                </label>
-                <select
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  <option value="">Select purpose</option>
-                  <option value="Official">Official</option>
-                  <option value="Personal">Personal</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Designation
-                </label>
-                <select
-                  value={formData.designation}
-                  onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  <option value="">Select your Designation</option>
-                  <option value="Unit Head">Unit Head</option>
-                  <option value="Functional Head">Functional Head</option>
-                  <option value="Department Head">Department Head</option>
-                  <option value="Sectional Head">Sectional Head</option>
-                  <option value="Management">Management</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Worker">Worker</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vehicle Class
-                </label>
-                <select
-                  value={formData.vehicleClass}
-                  onChange={(e) => setFormData({...formData, vehicleClass: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  <option value="">Select vehicle class</option>
-                  <option value="Economy">Economy</option>
-                  <option value="Business">Business</option>
-                  <option value="Executive">Executive</option>
-                  <option value="Luxury">Luxury</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Passengers
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={formData.numberOfPassengers}
-                  onChange={(e) => setFormData({...formData, numberOfPassengers: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="How many passengers?"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Remarks
-                </label>
-                <textarea
-                  value={formData.remarks}
-                  onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  rows="3"
-                  placeholder="Any additional information..."
-                />
-              </div>
-
-              </div>
-            </div>
-            
-            {/* Footer - Fixed */}
-            <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 rounded-b-xl">
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleSubmit}
-                  disabled={!formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime || !formData.purpose || !formData.designation || !formData.vehicleClass || !formData.numberOfPassengers }
-                  className={`flex-1 py-2 rounded-md font-medium transition-all ${
-                    !formData.pickupPoint || !formData.destination || !formData.startDate || !formData.startTime || !formData.purpose || !formData.designation || !formData.vehicleClass || !formData.numberOfPassengers  
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 transform hover:scale-105'
-                  }`}
-                >
-                  Submit Request
-                </button>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Trip Details Modal */}
       {showDetails && selectedTrip && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -519,7 +206,6 @@ const SimpleEmployeeDashboard = () => {
                 </button>
               </div>
             </div>
-            
             {/* Content */}
             <div className={`p-4 ${isRequestPast(selectedTrip.status) ? 'opacity-75' : ''}`}>
               {/* Trip Route - Compact */}
@@ -542,7 +228,6 @@ const SimpleEmployeeDashboard = () => {
                   </div>
                 </div>
               </div>
-
               {/* Details Grid - Compact */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-3">
@@ -559,7 +244,6 @@ const SimpleEmployeeDashboard = () => {
                     <p className="text-sm text-gray-900 font-medium">{selectedTrip.numberOfPassengers}</p>
                   </div>
                 </div>
-
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
@@ -575,7 +259,6 @@ const SimpleEmployeeDashboard = () => {
                   </div>
                 </div>
               </div>
-
               {/* Vehicle Details Section for Approved/Completed requests */}
               {selectedTrip.vehicleDetails && (selectedTrip.status === 'Approved' || selectedTrip.status === 'Completed') && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -603,14 +286,12 @@ const SimpleEmployeeDashboard = () => {
                   </div>
                 </div>
               )}
-
               {/* Remarks */}
               <div className="mt-4">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
                 <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{selectedTrip.remarks || 'No remarks provided'}</p>
               </div>
             </div>
-
             {/* Footer */}
             <div className="bg-gray-50 px-4 py-3 rounded-b-lg">
               <div className="flex justify-end">
@@ -629,4 +310,4 @@ const SimpleEmployeeDashboard = () => {
   );
 };
 
-export default SimpleEmployeeDashboard;
+export default EmployeeDashboard;
