@@ -22,7 +22,7 @@ import {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logoutUser } = useAuthUser();
+  const { logoutUser, authUser } = useAuthUser();
   const [activeTab, setActiveTab] = useState('active-requests');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddDriver, setShowAddDriver] = useState(false);
@@ -83,7 +83,7 @@ const AdminDashboard = () => {
       });
       if (response.ok) {
         setSelectedRequest(null);
-        setAssignmentData({ vehicleId: '', driverId:'', remarks: '' } );
+        setAssignmentData({ vehicleId: '', driverId: '', remarks: '' });
       } else {
         alert('Failed to approve and assign. Please try again.')
       }
@@ -136,8 +136,8 @@ const AdminDashboard = () => {
 
   const getAvailableVehicles = (requestedClass) => {
     return vehicles.filter(vehicle =>
-      vehicle.vehicleClass === requestedClass && 
-      vehicle.status === 'Available' && 
+      vehicle.vehicleClass === requestedClass &&
+      vehicle.status === 'Available' &&
       !vehicle.outOfService
     );
   };
@@ -266,50 +266,49 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchDrivers = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/drivers');
+      if (response.ok) {
+        const driversData = await response.json();
+        setDrivers(driversData);
+      } else {
+        console.error('Failed to fetch drivers');
+      }
+    } catch (error) {
+      console.error('Error fetching drivers: ', error);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/vehicles');
+      if (response.ok) {
+        const vehiclesData = await response.json();
+        setVehicles(vehiclesData);
+      } else {
+        console.error('Failed to fetch vehicles');
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles: ', error);
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/tripRequest', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const requestsData = await response.json();
+        setRequests(requestsData)
+      }
+    } catch (error) {
+      console.log('Error fetching request: ', error)
+    }
+  };
   // Fetch drivers, vehicles and tripRequests from server
   useEffect(() => {
-    const fetchDrivers = async () => {
-      try {
-        const response = await fetch('http://localhost:5002/api/drivers');
-        if (response.ok) {
-          const driversData = await response.json();
-          setDrivers(driversData);
-        } else {
-          console.error('Failed to fetch drivers');
-        }
-      } catch (error) {
-        console.error('Error fetching drivers: ', error);
-      }
-    };
-
-    const fetchVehicles = async () => {
-      try {
-        const response = await fetch('http://localhost:5002/api/vehicles');
-        if (response.ok) {
-          const vehiclesData = await response.json();
-          setVehicles(vehiclesData);
-        } else {
-          console.error('Failed to fetch vehicles');
-        }
-      } catch (error) {
-        console.error('Error fetching vehicles: ', error);
-      }
-    };
-
-    const fetchRequests = async () => {
-      try {
-        const response = await fetch('http://localhost:5002/api/tripRequest', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const requestsData = await response.json();
-          setRequests(requestsData)
-        }
-      } catch (error) {
-        console.log('Error fetching request: ', error)
-      }
-    };
-
     const interval = setInterval(() => {
       fetchDrivers();
       fetchVehicles();
@@ -507,9 +506,31 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center px-5 py-3 rounded-full text-md font-semibold border border-gray-400 ${getStatusColor(request.status)}`}>
-                    {request.status}
-                  </span>
+                  <div className='flex gap-4'>
+                    {request.status === "Approved" && (
+                      <button onClick={ async () => {
+                        try {
+                          const response = await fetch(`http://localhost:5002/api/tripRequest/${request._id}/complete`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            header: {"Content-Type": "application/json"}
+                          });
+                          if(response.ok) {
+                            fetchRequests();
+                          } else {
+                            alert('Failed to complete the trip')
+                          }
+                        } catch (error) {
+                          console.log(error)
+                        }
+                    }} className='bg-green-600 text-white px-5 py-1 rounded-full hover:bg-green-700 transition'>
+                      Complete this Trip
+                    </button>
+                    )}
+                    <span className={`inline-flex items-center px-5 py-3 rounded-full text-md font-semibold border border-gray-400 ${getStatusColor(request.status)}`}>
+                      {request.status}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -651,10 +672,9 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-600">{vehicle.vehicleName}</p>
               </div>
               <div className="flex items-center space-x-2">
-                  <span className={`px-5 py-2 rounded-full text-sm font-semibold ${
-                  vehicle.outOfService ? 'bg-orange-100 text-orange-800' :
-                  vehicle.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
+                <span className={`px-5 py-2 rounded-full text-sm font-semibold ${vehicle.outOfService ? 'bg-orange-100 text-orange-800' :
+                    vehicle.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
                   {vehicle.outOfService ? 'Out of Service' : vehicle.status}
                 </span>
                 <button
@@ -784,7 +804,7 @@ const AdminDashboard = () => {
               <span className="text-xl font-bold text-gray-800">Transport Management</span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, Admin</span>
+              <span className="text-gray-700">Welcome, {authUser?.name}</span>
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"

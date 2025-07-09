@@ -64,7 +64,7 @@ router.post('/:id/approve', secureRoute, async (req, res) => {
     }
 
     // Correctly update vehicle and driver status
-    await vehicleModel.findByIdAndUpdate(vehicleId, { status: 'assigned' });
+    await vehicleModel.findByIdAndUpdate(vehicleId, { status: 'Assigned' });
     await driverModel.findByIdAndUpdate(driverId, { status: 'assigned' });
 
     // Update trip request
@@ -75,6 +75,8 @@ router.post('/:id/approve', secureRoute, async (req, res) => {
         remarks: remarks || '',
         vehicleDetails: {
           driverName: driver.driverName,
+          vehicleId: vehicle._id,
+          driverId: driver._id,
           phoneNo: driver.phoneNo,
           vehicleNo: vehicle.vehicleNo,
           vehicleName: vehicle.vehicleName,
@@ -109,6 +111,34 @@ router.post('/:id/reject', secureRoute, async (req, res) => {
     res.status(200).json(updatedTrip);
   } catch (error) {
     res.status(500).json({ message: 'Error rejecting trip request', error: error.message });
+  }
+});
+
+// COMPLETE TRIP REQUEST MANUALLY
+router.post('/:id/complete', secureRoute, async (req, res) => {
+  try {
+    const tripRequestId = req.params.id;
+    const trip = await tripRequest.findById(tripRequestId);
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip request not found' });
+    }
+    // Mark trip as completed
+    trip.status = 'Completed';
+    await trip.save();
+
+    // Log vehicleDetails for debugging
+    console.log('vehicleDetails:', trip.vehicleDetails);
+
+    // Set driver and vehicle back to available using IDs if present
+    if (trip.vehicleDetails?.driverId) {
+      await driverModel.findByIdAndUpdate(trip.vehicleDetails.driverId, { status: 'available' });
+    }
+    if (trip.vehicleDetails?.vehicleId) {
+      await vehicleModel.findByIdAndUpdate(trip.vehicleDetails.vehicleId, { status: 'Available' });
+    }
+    res.status(200).json({ message: 'Trip marked as completed', trip });
+  } catch (error) {
+    res.status(500).json({ message: 'Error completing trip request', error: error.message });
   }
 });
 
