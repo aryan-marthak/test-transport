@@ -49,9 +49,10 @@ npm run install-all
   cd backend
   cp .env.example .env
   ```
-- Edit `.env` to add your MongoDB Atlas URI and desired PORT:
+- Edit `.env` to add your MongoDB Atlas URI, JWT secret, and desired PORT:
   ```env
   MONGODB_URI=your_mongodb_atlas_connection_string
+  JWT_SECRET=your_very_secret_key_here
   PORT=5002
   ```
 
@@ -62,6 +63,14 @@ npm run install-all
 4. Copy the provided connection string (it looks like `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`).
 5. Replace `<username>`, `<password>`, and any placeholder values with your actual credentials and database name.
 6. Paste this string as the value for `MONGODB_URI` in your `.env` file.
+
+#### JWT_SECRET configuration:
+- `JWT_SECRET` can be **any random string**. It is used to sign and verify authentication tokens.
+- Example values:
+  - `JWT_SECRET=supersecret`
+  - `JWT_SECRET=myrandomstring123`
+  - `JWT_SECRET=ThisIsAReallyLongAndRandomSecretKey!@#123`
+- For production, use a long, unpredictable string.
 
 #### PORT configuration:
 - The default port is `5002`. You can change it in your `.env` file if needed.
@@ -81,9 +90,10 @@ npm run dev
 - A demo `.env.example` file is provided in the `backend` directory:
   ```env
   MONGODB_URI=your_mongodb_atlas_connection_string
+  JWT_SECRET=your_very_secret_key_here
   PORT=5002
   ```
-- Update the values as described above to match your MongoDB Atlas setup and desired port.
+- Update the values as described above to match your MongoDB Atlas setup, JWT secret, and desired port.
 
 ---
 
