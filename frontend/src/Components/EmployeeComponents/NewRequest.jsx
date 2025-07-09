@@ -54,7 +54,7 @@ const NewRequest = ({ showForm, setShowForm, formData, setFormData, handleSubmit
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date <span className='text-red-600'>*not necessary</span></label>
               <input
                 type="date"
                 value={formData.endDate}
