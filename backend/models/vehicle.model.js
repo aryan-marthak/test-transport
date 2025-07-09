@@ -30,8 +30,8 @@ const vehicleSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['assigned', 'available'],
-        default: 'available'
+        enum: ['Assigned', 'Available'],
+        default: 'Available'
     }
 }, {
     timestamps: true
