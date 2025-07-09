@@ -67,11 +67,11 @@ npm run dev
 
 ## 👤 Default Accounts
 - **Admin:**
-  - Email: `admin@example.com`
+  - Email: `admin@dev`
   - Password: `aryan12345`
 - **Employee:** (Would suggest you to SignUp your own new Employee.)
-  - Email: `employee@example.com`
-  - Password: `employee123`
+  - Email: `test2@dev`
+  - Password: `aryan12345`
 
 ---
 
