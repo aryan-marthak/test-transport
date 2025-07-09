@@ -32,6 +32,10 @@ const vehicleSchema = new mongoose.Schema({
         required: true,
         enum: ['Assigned', 'Available'],
         default: 'Available'
+    },
+    outOfService: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

@@ -136,7 +136,9 @@ const AdminDashboard = () => {
 
   const getAvailableVehicles = (requestedClass) => {
     return vehicles.filter(vehicle =>
-      vehicle.vehicleClass === requestedClass
+      vehicle.vehicleClass === requestedClass && 
+      vehicle.status === 'Available' && 
+      !vehicle.outOfService
     );
   };
 
@@ -649,9 +651,11 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-600">{vehicle.vehicleName}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className={`px-5 py-2 rounded-full text-sm font-semibold ${vehicle.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                  {vehicle.status}
+                  <span className={`px-5 py-2 rounded-full text-sm font-semibold ${
+                  vehicle.outOfService ? 'bg-orange-100 text-orange-800' :
+                  vehicle.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {vehicle.outOfService ? 'Out of Service' : vehicle.status}
                 </span>
                 <button
                   onClick={() => handleDeleteVehicle(vehicle._id)}
@@ -676,6 +680,33 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-500">Color</p>
                 <p className="font-medium">{vehicle.vehicleColor}</p>
               </div>
+            </div>
+            <div className="col-span-3 flex items-center mt-4">
+              <input
+                type="checkbox"
+                id={`outOfService-${vehicle._id}`}
+                checked={vehicle.outOfService}
+                onChange={async (e) => {
+                  const outOfService = e.target.checked;
+                  try {
+                    const response = await fetch(`http://localhost:5002/api/vehicles/${vehicle._id}/toggleStatus`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ outOfService }),
+                    });
+                    if (response.ok) {
+                      const updatedVehicle = await response.json();
+                      setVehicles((prev) => prev.map((v) => v._id === vehicle._id ? updatedVehicle : v));
+                    }
+                  } catch (error) {
+                    alert('Failed to update out of service status');
+                  }
+                }}
+                className="mr-2"
+              />
+              <label htmlFor={`outOfService-${vehicle._id}`} className="text-sm font-medium text-gray-700 select-none">
+                Temporary Out of Service
+              </label>
             </div>
           </div>
         ))}

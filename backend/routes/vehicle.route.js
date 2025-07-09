@@ -49,4 +49,26 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// POST update vehicle out of service status
+router.post('/:id/toggleStatus', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { outOfService } = req.body;
+    
+    const updatedVehicle = await Vehicle.findByIdAndUpdate(
+      id,
+      { outOfService },
+      { new: true }
+    );
+    
+    if (!updatedVehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+    
+    res.status(200).json(updatedVehicle);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating vehicle out of service status', error: error.message });
+  }
+});
+
 export default router;
