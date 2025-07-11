@@ -13,10 +13,10 @@ const Header = ({ authUser, handleLogout }) => (
           <span className="text-gray-700">Welcome, {authUser?.name}</span>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2  bg-red-500 rounded-full  text-white hover:bg-red-600 transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            <span>Logout</span>
+            <span className='pb-[2px]'>Logout</span>
           </button>
         </div>
       </div>
