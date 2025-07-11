@@ -79,7 +79,7 @@ router.post('/logout', (req, res) => {
         httpOnly: true,
         secure: true, // true in production
         sameSite: 'strict'
-    });
+    }); 
     res.json({ message: 'Logged out' });
 });
 
