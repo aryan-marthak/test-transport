@@ -3,6 +3,7 @@ import tripRequest from "../models/trip.request.model.js"
 import secureRoute from "../middleware/secureRoute.js";
 import driverModel from "../models/driver.model.js";
 import vehicleModel from "../models/vehicle.model.js";
+import { sendMail } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -84,7 +85,20 @@ router.post('/:id/approve', secureRoute, async (req, res) => {
         }
       },
       { new: true }
-    );
+    ).populate('createdBy');
+
+    // Send email to the user who created the trip request
+    if (updatedTrip && updatedTrip.createdBy && updatedTrip.createdBy.email) {
+      try {
+        await sendMail(
+          updatedTrip.createdBy.email,
+          'Your trip request has been approved!',
+          `Hello ${updatedTrip.createdBy.name},\n\nYour trip request to ${updatedTrip.destination} has been approved.\n\nVehicle: ${vehicle.vehicleName} (${vehicle.vehicleNo})\nDriver: ${driver.driverName} (${driver.phoneNo})\n\nRemarks: ${remarks || 'None'}\n\nThank you.`
+        );
+      } catch (mailError) {
+        console.error('Failed to send approval email:', mailError);
+      }
+    }
 
     res.status(200).json(updatedTrip);
   } catch (error) {
@@ -106,7 +120,20 @@ router.post('/:id/reject', secureRoute, async (req, res) => {
         remarks: remarks || ''
       },
       { new: true }
-    );
+    ).populate('createdBy');
+
+    // Send email to the user who created the trip request
+    if (updatedTrip && updatedTrip.createdBy && updatedTrip.createdBy.email) {
+      try {
+        await sendMail(
+          updatedTrip.createdBy.email,
+          'Your trip request has been rejected',
+          `Hello ${updatedTrip.createdBy.name},\n\nWe regret to inform you that your trip request to ${updatedTrip.destination} has been rejected.\n\nRemarks: ${remarks || 'None'}\n\nIf you have any questions, please contact the admin.`
+        );
+      } catch (mailError) {
+        console.error('Failed to send rejection email:', mailError);
+      }
+    }
 
     res.status(200).json(updatedTrip);
   } catch (error) {
@@ -125,9 +152,6 @@ router.post('/:id/complete', secureRoute, async (req, res) => {
     // Mark trip as completed
     trip.status = 'Completed';
     await trip.save();
-
-    // Log vehicleDetails for debugging
-    console.log('vehicleDetails:', trip.vehicleDetails);
 
     // Set driver and vehicle back to available using IDs if present
     if (trip.vehicleDetails?.driverId) {
