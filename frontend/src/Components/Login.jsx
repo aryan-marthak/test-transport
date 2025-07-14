@@ -9,7 +9,7 @@ const Login = () => {
     const [errors, setErrors] = useState("");
 
     const navigate = useNavigate();
-    const { loginUser } = useAuthUser();
+    const { loginUser, authUser } = useAuthUser();
 
     const handleSubmit = async (e) => {
         e.preventDefault();

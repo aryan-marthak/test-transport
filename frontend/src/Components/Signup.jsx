@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import useAuthUser from "../context/AuthUser";
 
 const Signup = () => {
     const [name, setName] = useState("");
@@ -13,7 +12,6 @@ const Signup = () => {
     const [errors, setErrors] = useState("");
 
     const navigate = useNavigate();
-    const { fetchUser, authUser } = useAuthUser();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -35,14 +33,12 @@ const Signup = () => {
             const response = await fetch("http://localhost:5002/api/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify({ employeeId, name, email, password, department }),
             });
             const data = await response.json();
             if (response.ok) {
-                await fetchUser(); // Automatically log in after signup
-                // Redirect based on role (handled by App.jsx)
-                // Optionally, show a message here
+                alert("Signup successful!");
+                navigate("/login");
             } else {
                 alert("Signup failed: " + data.error);
             }

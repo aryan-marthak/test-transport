@@ -49,9 +49,7 @@ export function AuthUserProvider({ children }) {
                 method: "POST",
                 credentials: "include"
             });
-        } catch {
-            console.error("Logout failed");
-        }
+        } catch {}
         setAuthUser(null);
     };
 
