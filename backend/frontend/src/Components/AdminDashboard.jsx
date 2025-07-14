@@ -71,7 +71,7 @@ const AdminDashboard = () => {
 
   const fetchDrivers = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/drivers');
+      const response = await fetch('/api/drivers');
       if (response.ok) {
         const driversData = await response.json();
         setDrivers(driversData);
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
 
   const fetchVehicles = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/vehicles');
+      const response = await fetch('/api/vehicles');
       if (response.ok) {
         const vehiclesData = await response.json();
         setVehicles(vehiclesData);
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/tripRequest', {
+      const response = await fetch('/api/tripRequest', {
         credentials: 'include'
       });
       if (response.ok) {
@@ -114,7 +114,7 @@ const AdminDashboard = () => {
   const handleAddVehicle = async () => {
     if (vehicleForm.vehicleNo && vehicleForm.vehicleName && vehicleForm.capacity && vehicleForm.vehicleClass && vehicleForm.vehicleColor) {
       try {
-        const response = await fetch('http://localhost:5002/api/vehicles', {
+        const response = await fetch('/api/vehicles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
   const handleAddDriver = async () => {
     if (driverForm.driverName && driverForm.age && driverForm.phoneNo && driverForm.licenseNo) {
       try {
-        const response = await fetch('http://localhost:5002/api/drivers', {
+        const response = await fetch('/api/drivers', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
   const handleDeleteDriver = async (driverId) => {
     if (window.confirm('Are you sure you want to delete this driver?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/drivers/${driverId}`, {
+        const response = await fetch(`/api/drivers/${driverId}`, {
           method: 'DELETE',
         });
         if (response.ok) {
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
   const handleDeleteVehicle = async (vehicleId) => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/vehicles/${vehicleId}`, {
+        const response = await fetch(`/api/vehicles/${vehicleId}`, {
           method: 'DELETE',
         });
         if (response.ok) {
@@ -203,7 +203,7 @@ const AdminDashboard = () => {
   // Assignment and rejection logic
   const handleApprove = async (requestId, vehicleId, driverId, remarks) => {
     try {
-      const response = await fetch(`http://localhost:5002/api/tripRequest/${requestId}/approve`, {
+      const response = await fetch(`/api/tripRequest/${requestId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -233,7 +233,7 @@ const AdminDashboard = () => {
   const submitReject = async () => {
     if (!rejectingRequestId) return;
     try {
-      const response = await fetch(`http://localhost:5002/api/tripRequest/${rejectingRequestId}/reject`, {
+      const response = await fetch(`/api/tripRequest/${rejectingRequestId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -258,7 +258,7 @@ const AdminDashboard = () => {
 
   const handleCompleteTrip = async (requestId) => {
     try {
-      const response = await fetch(`http://localhost:5002/api/tripRequest/${requestId}/complete`, {
+      const response = await fetch(`/api/tripRequest/${requestId}/complete`, {
         method: 'POST',
         credentials: 'include',
         header: { "Content-Type": "application/json" }

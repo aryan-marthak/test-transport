@@ -8,7 +8,7 @@ export function AuthUserProvider({ children }) {
     // Fetch user info from backend
     const fetchUser = async () => {
         try {
-            const response = await fetch("http://localhost:5002/api/me", {
+            const response = await fetch("/api/me", {
                 credentials: "include"
             });
             if (response.ok) {
@@ -24,7 +24,7 @@ export function AuthUserProvider({ children }) {
 
     const loginUser = async (credentials) => {
         try {
-            const response = await fetch("http://localhost:5002/api/login", {
+            const response = await fetch("/api/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -45,7 +45,7 @@ export function AuthUserProvider({ children }) {
 
     const logoutUser = async () => {
         try {
-            await fetch("http://localhost:5002/api/logout", {
+            await fetch("/api/logout", {
                 method: "POST",
                 credentials: "include"
             });

@@ -37,7 +37,7 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await fetch('http://localhost:5002/api/tripRequest', {
+        const response = await fetch('/api/tripRequest', {
           credentials: 'include'
         });
         if (response.ok) {
@@ -56,7 +56,7 @@ const EmployeeDashboard = () => {
   const handleSubmit = async () => {
     if (formData.pickupPoint && formData.destination && formData.startDate && formData.startTime && formData.purpose && formData.designation && formData.vehicleClass && formData.numberOfPassengers) {
       try {
-        const response = await fetch('http://localhost:5002/api/tripRequest', {
+        const response = await fetch('/api/tripRequest', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
