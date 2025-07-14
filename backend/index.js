@@ -8,6 +8,10 @@ import authRoutes from "./routes/auth.js";
 import driverRoutes from "./routes/driver.route.js";
 import vehicleRoutes from "./routes/vehicle.route.js";
 import tripRequestRoutes from "./routes/trip.request.js";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 dotenv.config();
@@ -25,13 +29,16 @@ app.use('/api', authRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/tripRequest', tripRequestRoutes);
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline';");
+  next();
+});
 
 if (process.env.NODE_ENV === "production") {
-  const dirPath = path.resolve();
-    app.use(express.static("./frontend/dist"));
-    app.get("*", (req, res) => {
-        res.sendFile(path.resolve(dirPath, "./frontend/dist", "index.html"));} 
-    );
+  app.use(express.static(path.join(__dirname, "frontend", "dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+  });
 }
 
 mongoose.connect(URI)
