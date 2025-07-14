@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import path from "path";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -24,6 +25,14 @@ app.use('/api', authRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/tripRequest', tripRequestRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  const dirPath = path.resolve();
+    app.use(express.static("./frontend/dist"));
+    app.get("*", (req, res) => {
+        res.sendFile(path.resolve(dirPath, "./frontend/dist", "index.html"));} 
+    );
+}
 
 mongoose.connect(URI)
   .then(() => {
